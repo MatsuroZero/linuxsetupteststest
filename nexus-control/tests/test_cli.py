@@ -619,4 +619,3 @@ def test_docker_autostart_unit_name():
     assert cli.docker_autostart_unit_name("odysseus") == (
         "nexus-docker-odysseus.service"
     )
-

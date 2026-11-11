@@ -46,7 +46,7 @@ load_dotenv(BASE_DIR / ".env")
 
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 ALLOWED_USER_ID = os.getenv("TELEGRAM_ALLOWED_USER_ID", "").strip()
-LINKS_PIN = os.getenv("LINKS_PIN", "7171").strip()
+LINKS_PIN = os.getenv("LINKS_PIN", "").strip()
 LINK_CREDENTIALS = {
     "🖥️ System dashboard": (
         os.getenv("SYSTEM_DASHBOARD_USERNAME", "").strip(),
@@ -446,6 +446,23 @@ async def credentials_pin_handler(update: Update, context: ContextTypes.DEFAULT_
 
     supplied_pin = message.text.strip() if message and message.text is not None else None
     chat_id = update.effective_chat.id if update.effective_chat else None
+
+    # Fail closed: credential reveal must never work without a configured PIN.
+    if not LINKS_PIN:
+        if message:
+            try:
+                await message.delete()
+            except Exception:
+                log.debug("Could not delete PIN-attempt message", exc_info=True)
+        if chat_id is not None:
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=(
+                    "⚠️ Credential reveal is disabled because LINKS_PIN "
+                    "is not configured in the bot's local .env file."
+                ),
+            )
+        return ConversationHandler.END
 
     if supplied_pin != LINKS_PIN:
         if message:
